@@ -19,28 +19,10 @@ class Container {
   }
 
   async remove() {
-    await update(`
-        PREFIX docker: <http://w3.org/ns/bde/docker#>
-        WITH ${sparqlEscapeUri(process.env.MU_APPLICATION_GRAPH)}
-        DELETE {
-           ${sparqlEscapeUri(this.uri)} a docker:Container;
-                     docker:id ${sparqlEscapeString(this.id)};
-                     docker:name ${sparqlEscapeString(this.name)};
-                     docker:state ${sparqlEscapeUri(this.stateURI)}.
-          ${sparqlEscapeUri(this.stateURI)} docker:status ${sparqlEscapeString(this.status)}.
-          ${sparqlEscapeUri(this.uri)} docker:label ?label.
-          ?label ?p ?o.
-        }
-        WHERE {
-          ${sparqlEscapeUri(this.uri)} a docker:Container.
-          OPTIONAL {
-             ${sparqlEscapeUri(this.uri)} docker:label ?label.
-             ?label ?p ?o.
-          }
-        }`);
+    this.setStatus('removed');
   }
 
-    static async findAll() {
+  static async findAll() {
     const result = await query(`
         ${PREFIXES}
         SELECT ?uri ?id ?name ?stateURI ?status
@@ -156,6 +138,8 @@ class Container {
 
   labelTriples(objUri=this.uri) {
     const triples = new Array();
+    if (!this.labels && this.uri)
+      this.labels = Container.getLabels(this.uri);
     for (let key of Object.keys(this.labels)) {
       let value = this.labels[key];
       let uri = value.uri ? value.uri : `http://data.lblod.info/id/container-label/${uuid()}`;
