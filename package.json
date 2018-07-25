@@ -1,0 +1,24 @@
+{
+  "name": "docker-monitor-service",
+  "version": "1.0.0",
+  "description": "a service that stores currently running containers to a triple store",
+  "main": "app.js",
+  "dependencies": {
+    "dockerode": "^2.5.5",
+    "node-docker-api": "^1.1.22"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lblod/docker-monitor-service.git"
+  },
+  "author": "redpencil.io",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lblod/docker-monitor-service/issues"
+  },
+  "homepage": "https://github.com/lblod/docker-monitor-service#readme"
+}
