@@ -6,11 +6,13 @@ const docker = new Docker({ socketPath: process.env.MONITOR_DOCKER_SOCKET });
 
 const listContainers = function() {
   return new Promise(function(resolve, reject) {
-    docker.listContainers(function(err, containers) {
-      if (err)
-        reject(err);
-      else
-        resolve(containers);
+    docker.listContainers(
+      { all : true },
+      function(err, containers) {
+        if (err)
+          reject(err);
+        else
+          resolve(containers);
     });
   });
 };
@@ -77,7 +79,7 @@ const syncState = async function() {
       container.save();
       containers.splice(index, 1);
     }
-    else {
+    else if (container.status != "removed") {
       console.info(`removing container ${container.name} because it is no longer running. `);
       container.remove();
     }
@@ -96,7 +98,6 @@ const program = async function() {
 
   // sync docker state to db
   await syncState();
-  setTimeout(program, process.env.MONITOR_SYNC_INTERVAL);
 };
 
-program();
+setInterval(program, process.env.MONITOR_SYNC_INTERVAL);
