@@ -80,14 +80,14 @@ const syncState = async function() {
       containers.splice(index, 1);
     }
     else if (container.status != "removed") {
-      console.info(`removing container ${container.name} because it is no longer running. `);
+      console.info(`Removing container ${container.name} because it is no longer running.`);
       container.remove();
     }
   }
 
   // create missing containers
   for (let newContainer of containers) {
-    (new Container(newContainer)).save();
+    (new Container(newContainer)).save(true);
   }
 };
 

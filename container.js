@@ -4,18 +4,20 @@ const PREFIXES = `
 PREFIX docker: <https://w3.org/ns/bde/docker#>
 `;
 class Container {
-  constructor({id, name, uri, status, stateURI, labels}){
+  constructor({id, name, uri, status, labels}){
     this.id = id;
     this.name  = name;
     this.uri = uri;
     this.status = status;
-    this.stateURI = stateURI;
     this.labels = labels;
+    this._dirty = false;
   }
 
   async setStatus(status) {
-    this.status = status;
-    await this.save();
+    if(this.status != status) {
+      this.status = status;
+      await this.save(true);
+    }
   }
 
   async remove() {
@@ -23,16 +25,16 @@ class Container {
   }
 
   static async findAll() {
+    // Note that this does not fetch labels, as those are immutable.
     const result = await query(`
         ${PREFIXES}
-        SELECT ?uri ?id ?name ?stateURI ?status
+        SELECT ?uri ?id ?name ?status
         FROM ${sparqlEscapeUri(process.env.MU_APPLICATION_GRAPH)}
         WHERE {
           ?uri a docker:Container;
                docker:id ?id;
                docker:name ?name;
-               docker:state ?stateURI.
-          ?stateURI docker:status ?status.
+               docker:state/docker:status ?status.
         }
 
     `);
@@ -45,9 +47,6 @@ class Container {
       });
       return new this(obj);
     });
-    // for (let obj of objects) {
-    //   obj.labels = await Container.getLabels(obj.uri);
-    // }
     return objects;
   }
 
@@ -70,36 +69,35 @@ class Container {
   }
 
   update(newInformation) {
-    this.id = newInformation.id;
-    this.name = newInformation.name;
-    this.status = newInformation.status;
-    this.labels = newInformation.labels;
+    // Name and status are the only two properties of a running container (that we keep track of) that can change.
+    if(this.name != newInformation.name) {
+      this.name = newInformation.name;
+      this._dirty = true;
+    }
+    if(this.status != newInformation.status) {
+      this.status = newInformation.status;
+      this._dirty = true;
+    }
   }
 
-  async save() {
+  async save(force=false) {
+    // Don't update if nothing has changed.
+    if (!this._dirty && !force) {
+      console.debug("Not dirty, skipping save for " + this.id);
+      return;
+    }
     if (this.uri) {
       // assume it already exists in the database if we have a uri
       await update(`
       ${PREFIXES}
       WITH ${sparqlEscapeUri(process.env.MU_APPLICATION_GRAPH)}
       DELETE {
-          ${sparqlEscapeUri(this.uri)} a docker:Container;
-                   docker:id ?id;
-                   docker:name ?name;
-                   docker:state ?stateURI;
-                   docker:label ?label.
-                   ?stateURI docker:status ?status.
-          ?label a docker:ContainerLabel;
-                 docker:key ?labelKey;
-                 docker:value ?labelValue.
+          ${sparqlEscapeUri(this.uri)} docker:name ?name.
+          ?stateURI docker:status ?status.
       }
       INSERT {
-          ${sparqlEscapeUri(this.uri)} a docker:Container;
-                   docker:id ${sparqlEscapeString(this.id)};
-                   docker:name ${sparqlEscapeString(this.name)};
-                   docker:state ?stateURI.
-                   ?stateURI docker:status ${sparqlEscapeString(this.status)}.
-          ${this.labelTriples().join("\n")}
+          ${sparqlEscapeUri(this.uri)} docker:name ${sparqlEscapeString(this.name)}.
+          ?stateURI docker:status ${sparqlEscapeString(this.status)}.
       }
       WHERE {
           ${sparqlEscapeUri(this.uri)} a docker:Container;
@@ -107,13 +105,6 @@ class Container {
                    docker:name ?name;
                    docker:state ?stateURI.
           ?stateURI docker:status ?status.
-          OPTIONAL {
-            ${sparqlEscapeUri(this.uri)} docker:label ?label.
-            ?label a docker:ContainerLabel;
-                   docker:key ?labelKey;
-                   docker:value ?labelValue.
-          }
-
       }`);
     }
     else {
@@ -134,6 +125,7 @@ class Container {
       }
       `);
     }
+    this._dirty = false;
   }
 
   labelTriples(objUri=this.uri) {
