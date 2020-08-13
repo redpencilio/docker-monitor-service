@@ -119,7 +119,10 @@ class Container {
                    docker:id ${sparqlEscapeString(this.id)};
                    docker:name ${sparqlEscapeString(this.name)};
                    docker:state ${sparqlEscapeUri(stateURI)}.
-          ${sparqlEscapeUri(stateURI)} docker:status ${sparqlEscapeString(this.status)}.
+
+          ${sparqlEscapeUri(stateURI)} a docker:State;
+                                       docker:status ${sparqlEscapeString(this.status)}.
+
           ${this.labelTriples(containerURI).join("\n")}
         }
       }
