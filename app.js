@@ -58,8 +58,7 @@ const awaitGeneric = async function(successMessage, errorMessage, call) {
 }
 const awaitDb = async function() {
   let call = async function () {
-    let result = await query('ASK {?s ?p ?o}');
-    if (!result.boolean) throw("no triples in the database... whut");
+    await query('ASK {?s ?p ?o}');
   };
   await awaitGeneric('successfully connected to database', 'failed to connect to database', call);
 };
@@ -87,17 +86,9 @@ const syncState = async function() {
 
   // create missing containers
   for (let newContainer of containers) {
+    console.log(`New container found: ${newContainer.name}.`);
     (new Container(newContainer)).save(true);
   }
 };
 
-const program = async function() {
-  // wait for the docker endpoint and sparql endpoint to be available
-  await awaitDb();
-  await awaitDocker();
-
-  // sync docker state to db
-  await syncState();
-};
-
-setInterval(program, process.env.MONITOR_SYNC_INTERVAL);
+awaitDb().then( () => awaitDocker().then( () => setInterval(syncState, process.env.MONITOR_SYNC_INTERVAL)));
