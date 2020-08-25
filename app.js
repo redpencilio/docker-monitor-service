@@ -1,4 +1,4 @@
-import { app, query } from 'mu';
+import { app, query, sparqlEscapeUri } from 'mu';
 import Docker from 'dockerode';
 import Container from './container';
 
@@ -29,6 +29,7 @@ const getCurrentContainers = async function() {
       id: container["Id"],
       name: container["Names"][0],
       status: container["State"],
+      image: container["Image"],
       labels: labels
     };
   });

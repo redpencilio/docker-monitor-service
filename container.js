@@ -4,12 +4,13 @@ const PREFIXES = `
 PREFIX docker: <https://w3.org/ns/bde/docker#>
 `;
 class Container {
-  constructor({id, name, uri, status, labels}){
+  constructor({id, name, uri, status, labels, image}){
     this.id = id;
     this.name  = name;
     this.uri = uri;
     this.status = status;
     this.labels = labels;
+    this.image = image;
     this._dirty = false;
   }
 
@@ -26,6 +27,8 @@ class Container {
 
   static async findAll() {
     // Note that this does not fetch labels, as those are immutable.
+    // We also don't fetch removed containers, as a removed container
+    // no longer exists in Docker and can thus never show up again.
     const result = await query(`
         ${PREFIXES}
         SELECT ?uri ?id ?name ?status
@@ -118,6 +121,7 @@ class Container {
           ${sparqlEscapeUri(containerURI)} a docker:Container;
                    docker:id ${sparqlEscapeString(this.id)};
                    docker:name ${sparqlEscapeString(this.name)};
+                   docker:image ${sparqlEscapeString(this.image)};
                    docker:state ${sparqlEscapeUri(stateURI)}.
 
           ${sparqlEscapeUri(stateURI)} a docker:State;
