@@ -31,6 +31,6 @@ docker run -d --userns=host --privileged -v /var/run/docker.sock:/var/run/docker
 ### configuration
 The docker image can be configured using the following environment flags:
 
-* `MONITOR_DOCKER_SOCKET`: default: ``file:///var/run/docker.sock` specify a different url for the docker socket. currently supports the file and http scheme. For http use `http://IP_OR_DOMAIN:PORT`.
-* `MONTITOR_FILTER_LABEL`: default: none, if set only keep track of containers that have this label set.
+* `MONITOR_DOCKER_SOCKET`: default: `file:///var/run/docker.sock` specify a different url for the docker socket. currently supports the file and http scheme. For http use `http://IP_OR_DOMAIN:PORT`.
+* `MONITOR_FILTER_LABEL`: default: none, if set only keep track of containers that have this label set.
 * `MU_SPARQL_ENDPOINT`: default `'http://database:8890/sparql`, sparql endpoint to connect to
