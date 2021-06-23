@@ -88,7 +88,6 @@ class Container {
   async save(force=false) {
     // Don't update if nothing has changed.
     if (!this._dirty && !force) {
-      console.debug("Not dirty, skipping save for " + this.id);
       return;
     }
     if (this.uri) {
