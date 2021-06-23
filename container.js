@@ -22,7 +22,7 @@ class Container {
   }
 
   async remove() {
-    this.setStatus('removed');
+    await this.setStatus('removed');
   }
 
   static async findAll() {

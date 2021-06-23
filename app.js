@@ -76,19 +76,19 @@ const syncState = async function() {
     if (index > -1) {
       let current_container_info = containers[index];
       container.update(current_container_info);
-      container.save();
+      await container.save();
       containers.splice(index, 1);
     }
     else if (container.status != "removed") {
       console.info(`Removing container ${container.name} because it is no longer running.`);
-      container.remove();
+      await container.remove();
     }
   }
 
   // create missing containers
   for (let newContainer of containers) {
     console.log(`New container found: ${newContainer.name}.`);
-    (new Container(newContainer)).save(true);
+    await (new Container(newContainer)).save(true);
   }
 };
 
