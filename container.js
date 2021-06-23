@@ -27,8 +27,9 @@ class Container {
 
   static async findAll() {
     // Note that this does not fetch labels, as those are immutable.
-    // We also don't fetch removed containers, as a removed container
-    // no longer exists in Docker and can thus never show up again.
+    // We also don't fetch containers marked as remove, as a removed container
+    // no longer exists as Docker container on the system (neither running or stopped)
+    // and can thus never show up again.
     const result = await query(`
         ${PREFIXES}
         SELECT ?uri ?id ?name ?status
@@ -38,6 +39,7 @@ class Container {
                docker:id ?id;
                docker:name ?name;
                docker:state/docker:status ?status.
+          FILTER (?status != "removed")
         }
 
     `);
