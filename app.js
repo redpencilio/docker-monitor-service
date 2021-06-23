@@ -69,7 +69,9 @@ const awaitDocker = async function() {
 
 const syncState = async function() {
   let containers = await getCurrentContainers(docker);
+  console.log(`Found ${containers.length} docker containers running on the system`);
   let stale_containers = await Container.findAll();
+  console.log(`Found ${stale_containers.length} docker containers in the triplestore, including removed ones.`);
   // update stale_information
   for (let container of stale_containers) {
     let index = containers.findIndex( (c) => c.id === container.id);
@@ -80,7 +82,7 @@ const syncState = async function() {
       containers.splice(index, 1);
     }
     else if (container.status != "removed") {
-      console.info(`Removing container ${container.name} because it is no longer running.`);
+      console.log(`Set container ${container.name} status to removed because it is no longer running.`);
       await container.remove();
     }
   }
