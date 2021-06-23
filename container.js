@@ -32,7 +32,7 @@ class Container {
     // and can thus never show up again.
     const result = await query(`
         ${PREFIXES}
-        SELECT ?uri ?id ?name ?status
+        SELECT DISTINCT ?uri ?id ?name ?status
         FROM ${sparqlEscapeUri(process.env.MU_APPLICATION_GRAPH)}
         WHERE {
           ?uri a docker:Container;
@@ -58,7 +58,7 @@ class Container {
   static async getLabels(uri) {
      const result = await query(`
            ${PREFIXES}
-           SELECT ?label ?labelKey ?labelValue
+           SELECT DISTINCT ?label ?labelKey ?labelValue
            FROM ${sparqlEscapeUri(process.env.MU_APPLICATION_GRAPH)}
            WHERE {
             ${sparqlEscapeUri(uri)} docker:label ?label.
