@@ -67,31 +67,53 @@ const awaitDocker = async function() {
   await awaitGeneric('successfully connected to docker daemon', 'failed to connect to docker daemon', listContainers);
 };
 
-const syncState = async function() {
-  console.log(`Syncing container state in triplestore with containers running on the system`);
-  let containersInDocker = await getCurrentContainers(docker);
-  console.log(`Found ${containersInDocker.length} docker containers running on the system`);
-  let activeContainersInDb = await Container.findAll();
-  console.log(`Found ${activeContainersInDb.length} existing docker containers in the triplestore.`);
-  // update stale_information
-  for (let container of activeContainersInDb) {
-    let index = containersInDocker.findIndex( (c) => c.id === container.id);
-    if (index > -1) {
-      let current_container_info = containersInDocker[index];
-      container.update(current_container_info);
-      await container.save();
-      containersInDocker.splice(index, 1);
-    }
-    else if (container.status != "removed") {
-      console.log(`Set container ${container.name} status to removed because it is no longer running.`);
-      await container.remove();
-    }
-  }
+let syncStatePromise = null;
 
-  // create missing containers
-  for (let newContainer of containersInDocker) {
-    console.log(`New container found: ${newContainer.name}.`);
-    await (new Container(newContainer)).save(true);
+const syncState = async function() {
+  if (syncStatePromise) {
+    // we may return after an _older_ syncState finishes rather than
+    // after the one ran after we are called but because this is called
+    // every so often, that's not an effective problem at this point in
+    // time.
+    console.log(`Waiting for existing syncStatePromise to finish`);
+    await new Promise( (acc,rej) => syncStatePromise.then(acc).catch(rej) );
+    return;
+  } else {
+    syncStatePromise = new Promise(async (acc,rej) => {
+      try {
+        console.log(`Syncing container state in triplestore with containers running on the system`);
+        let containersInDocker = await getCurrentContainers(docker);
+        console.log(`Found ${containersInDocker.length} docker containers running on the system`);
+        let activeContainersInDb = await Container.findAll();
+        console.log(`Found ${activeContainersInDb.length} existing docker containers in the triplestore.`);
+        // update stale_information
+        for (let container of activeContainersInDb) {
+          let index = containersInDocker.findIndex((c) => c.id === container.id);
+          if (index > -1) {
+            let current_container_info = containersInDocker[index];
+            container.update(current_container_info);
+            await container.save();
+            containersInDocker.splice(index, 1);
+          }
+          else if (container.status != "removed") {
+            console.log(`Set container ${container.name} status to removed because it is no longer running.`);
+            await container.remove();
+          }
+        }
+
+        // create missing containers
+        for (let newContainer of containersInDocker) {
+          console.log(`New container found: ${newContainer.name}.`);
+          await (new Container(newContainer)).save(true);
+        }
+        acc();
+      } catch (e) {
+        rej(e);
+      }
+    });
+    await new Promise( (acc,rej) => syncStatePromise.then(acc).catch(rej) );
+    syncStatePromise = null;
+    return;
   }
 };
 
