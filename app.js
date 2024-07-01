@@ -69,18 +69,18 @@ const awaitDocker = async function() {
 
 const syncState = async function() {
   console.log(`Syncing container state in triplestore with containers running on the system`);
-  let containers = await getCurrentContainers(docker);
-  console.log(`Found ${containers.length} docker containers running on the system`);
-  let stale_containers = await Container.findAll();
-  console.log(`Found ${stale_containers.length} docker containers in the triplestore.`);
+  let containersInDocker = await getCurrentContainers(docker);
+  console.log(`Found ${containersInDocker.length} docker containers running on the system`);
+  let activeContainersInDb = await Container.findAll();
+  console.log(`Found ${activeContainersInDb.length} existing docker containers in the triplestore.`);
   // update stale_information
-  for (let container of stale_containers) {
-    let index = containers.findIndex( (c) => c.id === container.id);
+  for (let container of activeContainersInDb) {
+    let index = containersInDocker.findIndex( (c) => c.id === container.id);
     if (index > -1) {
-      let current_container_info = containers[index];
+      let current_container_info = containersInDocker[index];
       container.update(current_container_info);
       await container.save();
-      containers.splice(index, 1);
+      containersInDocker.splice(index, 1);
     }
     else if (container.status != "removed") {
       console.log(`Set container ${container.name} status to removed because it is no longer running.`);
@@ -89,7 +89,7 @@ const syncState = async function() {
   }
 
   // create missing containers
-  for (let newContainer of containers) {
+  for (let newContainer of containersInDocker) {
     console.log(`New container found: ${newContainer.name}.`);
     await (new Container(newContainer)).save(true);
   }
