@@ -1,7 +1,8 @@
-import { query, update, sparqlEscapeUri, sparqlEscapeString, uuid } from 'mu';
+import { query, update, sparqlEscapeUri, sparqlEscapeString, sparqlEscapeDateTime, uuid } from 'mu';
 
 const PREFIXES = `
 PREFIX docker: <https://w3.org/ns/bde/docker#>
+PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 `;
 class Container {
   constructor({id, name, uri, status, labels, image}){
@@ -98,10 +99,12 @@ class Container {
       DELETE {
           ${sparqlEscapeUri(this.uri)} docker:name ?name.
           ?stateURI docker:status ?status.
+          ?stateURI ext:updatedAt ?updatedAt.
       }
       INSERT {
           ${sparqlEscapeUri(this.uri)} docker:name ${sparqlEscapeString(this.name)}.
-          ?stateURI docker:status ${sparqlEscapeString(this.status)}.
+          ?stateURI docker:status ${sparqlEscapeString(this.status)};
+             ext:updatedAt ${sparqlEscapeDateTime(new Date())}
       }
       WHERE {
           ${sparqlEscapeUri(this.uri)} a docker:Container;
@@ -109,6 +112,7 @@ class Container {
                    docker:name ?name;
                    docker:state ?stateURI.
           ?stateURI docker:status ?status.
+          OPTIONAL { ?stateURI ext:updatedAt ?updatedAt }
       }`);
     }
     else {
@@ -126,7 +130,8 @@ class Container {
                    docker:state ${sparqlEscapeUri(stateURI)}.
 
           ${sparqlEscapeUri(stateURI)} a docker:State;
-                                       docker:status ${sparqlEscapeString(this.status)}.
+             docker:status ${sparqlEscapeString(this.status)};
+             ext:updatedAt ${sparqlEscapeDateTime(new Date())}.
 
           ${this.labelTriples(containerURI).join("\n")}
         }
